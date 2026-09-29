@@ -7,6 +7,10 @@ A small web app for listening to audiobooks stored in Google Drive, made to be a
 - Book art: `cover.jpg` / `cover.png` in the book folder (or its only image) is shown in the library, the player and on the lock screen, and kept on the device. Books without one get art drawn from the title.
 - A chapter is downloaded to the device before it plays (Drive does not accept a token in a media URL), and the next chapter is fetched ahead, so playback goes on without network and moves to the next chapter while the phone is locked.
 - Lock screen and headphone controls through the Media Session API. Speed, 15/30 second skips, a short rewind after a long pause.
+- Sleep timer: 15 to 60 minutes, or the end of the chapter (the next chapter then waits, ready).
+- Save a whole book on the device before a flight, with its size shown; remove it when done.
+- `book.json` in a book folder (written by Book Translator) gives full chapter titles and lengths before anything is downloaded.
+- Sharing: every folder named `ספרים מושמעים` the listener can see counts, including ones shared with them. To share, share your folder in Drive and add the listener as a test user of the OAuth app.
 
 Books come from Book Translator ("שלח ל-Google Drive" in its audiobook step), or from any folder of audio files.
 
