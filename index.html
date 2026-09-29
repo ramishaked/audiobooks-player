@@ -53,13 +53,16 @@
   .play-chip { width: 38px; height: 38px; border-radius: 50%; background: var(--soft); color: var(--accent); display: grid; place-items: center; flex: none; }
 
   /* generated covers */
-  .cover { flex: none; border-radius: 12px; display: grid; place-items: center; text-align: center; color: #fff; font-weight: 800;
+  .cover { flex: none; border-radius: 6px; display: grid; place-items: center; text-align: center; color: #fff; font-weight: 800;
     overflow: hidden; position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
   .cover span { padding: 10%; line-height: 1.15; text-shadow: 0 1px 2px rgba(0,0,0,.25); overflow-wrap: anywhere; }
   .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover.shape-square img { object-position: top; }
+  .cover:has(img) { background: var(--soft); }
 
   /* book page */
   .book-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 8px 0 18px; }
+  .book-head .cover { border-radius: 10px; box-shadow: var(--shadow); }
   .book-head h2 { font-size: 23px; margin: 6px 0 0; line-height: 1.25; }
   .book-head .sub { color: var(--muted); font-size: 14px; }
   .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 360px; min-height: 52px; border-radius: 14px; font-weight: 700; font-size: 17px; }
@@ -104,7 +107,7 @@
   .player.open { transform: none; }
   .player .grab { align-self: center; width: 44px; height: 30px; display: grid; place-items: center; color: var(--muted); }
   .player .art { flex: 1; display: grid; place-items: center; min-height: 0; padding: 12px 0; }
-  .player .art .cover { width: min(72vw, 320px, 38dvh); height: min(72vw, 320px, 38dvh); border-radius: 20px; box-shadow: var(--shadow); font-size: 26px; }
+  .player .art .cover { height: min(44dvh, 460px); max-width: 78vw; aspect-ratio: 2 / 3; border-radius: 14px; box-shadow: var(--shadow); }
   .player .names { text-align: center; }
   .player .names .t1 { font-size: 20px; font-weight: 750; line-height: 1.25; }
   .player .names .t2 { color: var(--muted); margin-top: 3px; }
@@ -164,7 +167,7 @@
     <button id="fwd" aria-label="קדימה 30 שניות"></button>
     <button id="nextCh" aria-label="פרק הבא"></button>
   </div>
-  <div class="extras"><button class="pill" id="rate">1×</button><button class="pill" id="chapters">פרקים</button></div>
+  <div class="extras"><button class="pill" id="rate" dir="ltr"><bdi>1×</bdi></button><button class="pill" id="chapters">פרקים</button></div>
 </section>
 
 <div class="sheet-bg" id="sheetBg" hidden><div class="sheet" id="sheet"></div></div>
@@ -211,14 +214,43 @@ const I = {
 };
 const miniIcon = svg => svg.replace(/width="30" height="30"/, 'width="24" height="24"');
 
-// ---- covers: generated from the title, stable colors ------------------------
+// ---- covers ---------------------------------------------------------------------------
+// A cover.jpg/png (or the only image) in the book's Drive folder is the book's art; it is
+// cached on the device. Books without one get art drawn from the title, in stable colors.
+const COVER_CACHE = 'covers-v1';
+const coverURLs = new Map();  // book id -> object URL
+async function loadCover(book) {
+  if (!book.cover || coverURLs.has(book.id)) return false;
+  const key = new Request(`cover/${book.cover.id}-${encodeURIComponent(book.cover.v || '')}`);
+  const c = await caches.open(COVER_CACHE);
+  let blob = await (await c.match(key))?.blob();
+  if (!blob) {
+    const r = DEMO ? await fetch(book.cover.url) : await drive(`files/${book.cover.id}`, { alt: 'media' });
+    blob = await r.blob();
+    await c.put(key, new Response(blob, { headers: { 'content-type': blob.type || 'image/jpeg' } }));
+    // Drop older versions of the same cover.
+    for (const k of await c.keys()) if (k.url.includes(`/cover/${book.cover.id}-`) && k.url !== key.url) await c.delete(k);
+  }
+  coverURLs.set(book.id, URL.createObjectURL(blob));
+  return true;
+}
+async function loadCovers() {
+  if (!library || !library.books) return;
+  const got = await Promise.all(library.books.map(b => loadCover(b).catch(() => false)));
+  if (got.some(Boolean)) { render(); if (P.book) { renderPlayer(); renderMini(); updateSession(); } }
+}
+
 function hue(title) { let h = 0; for (const ch of title) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h % 360; }
 function coverStyle(title) { const h = hue(title); return `background: linear-gradient(145deg, hsl(${h} 45% 42%), hsl(${(h + 40) % 360} 55% 26%));`; }
-function coverHTML(book, size) {
-  const small = size < 90;
+// shape: 'book' (2:3, like a printed cover), 'square' (mini player), 'player' (sized by CSS).
+function coverHTML(book, size, shape = 'book') {
+  const dims = shape === 'player' ? '' : `width:${size}px;height:${shape === 'square' ? size : Math.round(size * 1.5)}px;`;
+  const url = coverURLs.get(book.id);
+  if (url) return `<div class="cover shape-${shape}" style="${dims}"><img src="${url}" alt=""></div>`;
+  const small = size < 70;
   const text = small ? [...book.title.trim()][0] || '' : book.title;
-  const fs = small ? size * 0.45 : Math.max(13, size * 0.1);
-  return `<div class="cover" style="${coverStyle(book.title)} width:${size}px;height:${size}px;font-size:${fs}px"><span>${esc(text)}</span></div>`;
+  const fs = small ? size * 0.45 : Math.max(13, size * 0.11);
+  return `<div class="cover shape-${shape}" style="${coverStyle(book.title)} ${dims} font-size:${fs}px"><span>${esc(text)}</span></div>`;
 }
 const artCache = new Map();
 function coverBlobURL(book) {
@@ -276,7 +308,7 @@ async function drive(path, params) {
 async function list(q) {
   const out = []; let pageToken;
   do {
-    const params = { q, pageSize: '1000', fields: 'nextPageToken, files(id, name, mimeType, size, parents)' };
+    const params = { q, pageSize: '1000', fields: 'nextPageToken, files(id, name, mimeType, size, parents, modifiedTime)' };
     if (pageToken) params.pageToken = pageToken;
     const d = await (await drive('files', params)).json();
     out.push(...d.files); pageToken = d.nextPageToken;
@@ -300,8 +332,13 @@ async function fetchLibrary() {
   const inRoot = await list(`${quote(root.id)} in parents and trashed = false`);
   const folders = inRoot.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
   const files = folders.length ? await list(`(${folders.map(f => `${quote(f.id)} in parents`).join(' or ')}) and trashed = false`) : [];
+  const coverOf = folder => {
+    const imgs = files.filter(x => x.parents.includes(folder.id) && /^image\//.test(x.mimeType));
+    const c = imgs.find(x => /^cover\.(jpe?g|png|webp)$/i.test(x.name)) || (imgs.length === 1 ? imgs[0] : null);
+    return c ? { id: c.id, v: c.modifiedTime || '' } : null;
+  };
   const books = folders.map(f => ({
-    id: f.id, title: f.name,
+    id: f.id, title: f.name, cover: coverOf(f),
     chapters: files.filter(x => x.parents.includes(f.id) && isAudio(x)).sort(byName)
       .map(x => ({ id: x.id, name: x.name, title: chapterTitle(x.name), size: +x.size || 0 })),
   }));
@@ -472,7 +509,7 @@ function prevChapter() {
   if (audio.currentTime > 5 || P.index === 0) { audio.currentTime = 0; saveProgress(); return; }
   openChapter(P.book, P.index - 1, 0, !audio.paused);
 }
-function setRate(r) { rate = r; store.set('rate', r); audio.playbackRate = r; audio.defaultPlaybackRate = r; $('#rate').textContent = `${r}×`; updatePosition(); }
+function setRate(r) { rate = r; store.set('rate', r); audio.playbackRate = r; audio.defaultPlaybackRate = r; $('#rate').innerHTML = `<bdi>${r}×</bdi>`; updatePosition(); }
 function setStatus(msg, err = false) { P.status = msg; P.statusErr = err; const s = $('#pStatus'); s.textContent = msg; s.className = 'status-line' + (err ? ' err' : ''); }
 
 audio.addEventListener('play', () => { renderControls(); updateSession(); });
@@ -496,7 +533,7 @@ async function updateSession() {
   const ch = P.book.chapters[P.index];
   navigator.mediaSession.metadata = new MediaMetadata({
     title: ch.title, artist: P.book.title, album: `פרק ${P.index + 1} מתוך ${P.book.chapters.length}`,
-    artwork: [{ src: await coverBlobURL(P.book), sizes: '512x512', type: 'image/png' }],
+    artwork: coverURLs.has(P.book.id) ? [{ src: coverURLs.get(P.book.id) }] : [{ src: await coverBlobURL(P.book), sizes: '512x512', type: 'image/png' }],
   });
   navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
   updatePosition();
@@ -556,7 +593,7 @@ function renderLibrary() {
   const fresh = books.filter(b => !progress[b.id]);
   const finished = books.filter(b => progress[b.id] && progress[b.id].finished);
   const row = b => `<button class="row" data-book="${b.id}">
-      ${coverHTML(b, 58)}
+      ${coverHTML(b, 54)}
       <div class="meta"><div class="title">${esc(b.title)}</div><div class="sub">${esc(bookLine(b))}</div>
       ${progress[b.id] && !progress[b.id].finished ? `<div class="bar"><i style="width:${(bookFraction(b) * 100).toFixed(1)}%"></i></div>` : ''}</div>
       <span class="play-chip" data-quick="${b.id}" aria-label="נגן">${I.smallPlay}</span></button>`;
@@ -577,7 +614,7 @@ async function renderBook(b) {
     : `<button class="btn primary" data-start="${b.id}">${p && p.finished ? 'האזנה מחדש' : 'התחל האזנה'}</button>`;
   const here = new Set(await localIds());
   v.innerHTML = `<button class="back" data-act="home">${I.backArrow}ספרים</button>
-    <div class="book-head">${coverHTML(b, 190)}<h2>${esc(b.title)}</h2><div class="sub">${esc(bookLine(b))}</div>${buttons}</div>
+    <div class="book-head">${coverHTML(b, 170)}<h2>${esc(b.title)}</h2><div class="sub">${esc(bookLine(b))}</div>${buttons}</div>
     <div class="section">פרקים</div>
     <div class="list">${b.chapters.map((c, i) => {
       const now = P.book && P.book.id === b.id && P.index === i;
@@ -595,7 +632,7 @@ function renderMini() {
   if (!P.book) { m.hidden = true; return; }
   m.hidden = false;
   const ch = P.book.chapters[P.index];
-  $('#miniCover').innerHTML = coverHTML(P.book, 46);
+  $('#miniCover').innerHTML = coverHTML(P.book, 46, 'square');
   $('#miniT1').textContent = ch.title;
   $('#miniT2').textContent = P.book.title;
   $('#miniFwd').innerHTML = I.skip(FWD_SEC, true).replace('width="34" height="34"', 'width="28" height="28"');
@@ -604,11 +641,11 @@ function renderMini() {
 function renderPlayer() {
   if (!P.book) return;
   const ch = P.book.chapters[P.index];
-  $('#art').innerHTML = coverHTML(P.book, 320);
+  $('#art').innerHTML = coverHTML(P.book, 300, 'player');
   $('#pT1').textContent = ch.title;
   $('#pT2').textContent = P.book.title;
   $('#pT3').textContent = `פרק ${P.index + 1} מתוך ${P.book.chapters.length}`;
-  $('#rate').textContent = `${rate}×`;
+  $('#rate').innerHTML = `<bdi>${rate}×</bdi>`;
   setStatus(P.status, P.statusErr);
   renderControls(); renderTime();
 }
@@ -718,6 +755,7 @@ async function refreshLibrary(announce) {
     const lib = await fetchLibrary();
     library = lib; loadError = '';
     if (!DEMO) store.set('library', lib);
+    loadCovers();
     if (announce) toast('הספרייה עודכנה');
   } catch (e) {
     if (e instanceof AuthError) { if (!library) { render(); return; } loadError = 'לא מחובר ל-Google. מוצגת הספרייה מהפעם הקודמת.'; }
@@ -736,6 +774,7 @@ if (!DEMO && CLIENT_ID && !token() && store.get('signedIn') && !sessionStorage.g
   signIn(true);
 } else {
   render();
+  loadCovers();  // covers saved on the device show at once, even offline
   if (DEMO || token()) refreshLibrary(false);
 }
 </script>

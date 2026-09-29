@@ -1,6 +1,6 @@
 // App shell only: the page works offline once installed. Chapters live in their own
 // cache (chapters-v1) that the page manages; Drive requests pass straight through.
-const SHELL = 'shell-v1';
+const SHELL = 'shell-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

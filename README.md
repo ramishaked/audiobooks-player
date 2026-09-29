@@ -4,6 +4,7 @@ A small web app for listening to audiobooks stored in Google Drive, made to be a
 
 - Reads the Drive folder `ספרים מושמעים`: every subfolder is a book, its audio files (sorted by name) are the chapters. Loose audio files in the folder are one-chapter books.
 - Continue from the last position, or start over. Progress is kept on the device.
+- Book art: `cover.jpg` / `cover.png` in the book folder (or its only image) is shown in the library, the player and on the lock screen, and kept on the device. Books without one get art drawn from the title.
 - A chapter is downloaded to the device before it plays (Drive does not accept a token in a media URL), and the next chapter is fetched ahead, so playback goes on without network and moves to the next chapter while the phone is locked.
 - Lock screen and headphone controls through the Media Session API. Speed, 15/30 second skips, a short rewind after a long pause.
 
