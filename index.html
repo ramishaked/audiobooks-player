@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ספרים">
+<meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>ספרים מושמעים</title>
+<style>
+  :root {
+    --bg: #f6f3ee; --card: #fffdf9; --ink: #1d1b18; --muted: #7a736b; --line: #e7e1d8;
+    --accent: #1f5f8b; --accent-ink: #fff; --soft: #efe9e0; --danger: #b3261e;
+    --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.07);
+    --font: -apple-system, "SF Hebrew", "Heebo", system-ui, sans-serif;
+    --top: env(safe-area-inset-top); --bottom: env(safe-area-inset-bottom);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161412; --card: #211e1b; --ink: #f1ece5; --muted: #a39b91; --line: #34302b;
+      --accent: #6aa9d6; --accent-ink: #0d1a24; --soft: #2a2622; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35); }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.45; }
+  body { padding-top: var(--top); min-height: 100dvh; -webkit-user-select: none; user-select: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  svg { display: block; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px calc(110px + var(--bottom)); }
+
+  /* header */
+  .top { display: flex; align-items: center; gap: 10px; padding: 14px 0 10px; }
+  .top h1 { font-size: 30px; font-weight: 800; margin: 0; flex: 1; letter-spacing: -.3px; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); }
+  .icon-btn:active { background: var(--soft); }
+  .back { display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-size: 17px; padding: 12px 0 6px; }
+
+  /* library */
+  .section { font-size: 13px; font-weight: 700; color: var(--muted); margin: 18px 4px 8px; }
+  .list { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; width: 100%; text-align: start; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row:active { background: var(--soft); }
+  .row .meta { flex: 1; min-width: 0; }
+  .row .title { font-weight: 650; font-size: 16.5px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .row .sub { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+  .bar { height: 4px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 7px; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .play-chip { width: 38px; height: 38px; border-radius: 50%; background: var(--soft); color: var(--accent); display: grid; place-items: center; flex: none; }
+
+  /* generated covers */
+  .cover { flex: none; border-radius: 12px; display: grid; place-items: center; text-align: center; color: #fff; font-weight: 800;
+    overflow: hidden; position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+  .cover span { padding: 10%; line-height: 1.15; text-shadow: 0 1px 2px rgba(0,0,0,.25); overflow-wrap: anywhere; }
+  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* book page */
+  .book-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 8px 0 18px; }
+  .book-head h2 { font-size: 23px; margin: 6px 0 0; line-height: 1.25; }
+  .book-head .sub { color: var(--muted); font-size: 14px; }
+  .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 360px; min-height: 52px; border-radius: 14px; font-weight: 700; font-size: 17px; }
+  .btn small { font-weight: 500; font-size: 13px; opacity: .85; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.primary:active { filter: brightness(.92); }
+  .btn.secondary { background: var(--soft); color: var(--accent); min-height: 46px; font-size: 16px; }
+  .ch { display: flex; align-items: center; gap: 12px; padding: 13px 14px; width: 100%; text-align: start; }
+  .ch + .ch { border-top: 1px solid var(--line); }
+  .ch:active { background: var(--soft); }
+  .ch .n { width: 26px; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; flex: none; }
+  .ch .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ch.done .t { color: var(--muted); }
+  .ch.now .t { color: var(--accent); font-weight: 650; }
+  .ch .d { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; direction: ltr; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: .55; flex: none; }
+
+  /* empty and sign-in states */
+  .center { min-height: 70dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; padding: 0 12px; }
+  .center h2 { margin: 0; font-size: 26px; }
+  .center p { margin: 0; color: var(--muted); max-width: 340px; }
+  .logo { width: 96px; height: 96px; border-radius: 24px; box-shadow: var(--shadow); }
+  .note { font-size: 13px; color: var(--muted); }
+  .err { color: var(--danger); font-size: 14px; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: var(--soft); padding: 1px 5px; border-radius: 5px; direction: ltr; unicode-bidi: isolate; }
+
+  /* mini player */
+  .mini { position: fixed; inset-inline: 8px; bottom: calc(8px + var(--bottom)); max-width: 624px; margin: 0 auto; z-index: 10;
+    background: color-mix(in srgb, var(--card) 88%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-radius: 16px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 6px; overflow: hidden; }
+  .mini[hidden] { display: none; }
+  .mini .meta { flex: 1; min-width: 0; }
+  .mini .t1 { font-weight: 650; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini .t2 { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini .line { position: absolute; bottom: 0; inset-inline: 0; height: 2px; background: var(--line); }
+  .mini .line i { display: block; height: 100%; background: var(--accent); }
+  .mini .ctl { width: 42px; height: 42px; display: grid; place-items: center; color: var(--ink); }
+
+  /* full player */
+  .player { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: flex; flex-direction: column;
+    padding: calc(var(--top) + 6px) 24px calc(var(--bottom) + 18px); transform: translateY(100%); transition: transform .28s ease; }
+  .player.open { transform: none; }
+  .player .grab { align-self: center; width: 44px; height: 30px; display: grid; place-items: center; color: var(--muted); }
+  .player .art { flex: 1; display: grid; place-items: center; min-height: 0; padding: 12px 0; }
+  .player .art .cover { width: min(72vw, 320px, 38dvh); height: min(72vw, 320px, 38dvh); border-radius: 20px; box-shadow: var(--shadow); font-size: 26px; }
+  .player .names { text-align: center; }
+  .player .names .t1 { font-size: 20px; font-weight: 750; line-height: 1.25; }
+  .player .names .t2 { color: var(--muted); margin-top: 3px; }
+  .player .names .t3 { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .status-line { text-align: center; font-size: 13px; color: var(--muted); min-height: 20px; margin-top: 6px; }
+  .status-line.err { color: var(--danger); }
+  .timeline { direction: ltr; margin-top: 8px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; margin: 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: linear-gradient(to right, var(--accent) var(--p, 0%), var(--line) var(--p, 0%)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); margin-top: -5.5px; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .times { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .controls { direction: ltr; display: flex; align-items: center; justify-content: space-between; margin: 14px 0 8px; }
+  .controls button { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); }
+  .controls button:active { background: var(--soft); }
+  .controls .big { width: 78px; height: 78px; background: var(--accent); color: var(--accent-ink); }
+  .controls .big:active { background: var(--accent); filter: brightness(.92); }
+  .extras { display: flex; justify-content: center; gap: 12px; }
+  .pill { direction: ltr; min-width: 64px; height: 34px; padding: 0 14px; border-radius: 99px; background: var(--soft); color: var(--accent); font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+
+  /* sheet */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 30; display: flex; align-items: flex-end; }
+  .sheet-bg[hidden] { display: none; }
+  .sheet { width: 100%; max-width: 640px; margin: 0 auto; background: var(--card); border-radius: 18px 18px 0 0; padding: 10px 16px calc(var(--bottom) + 16px); }
+  .sheet h3 { font-size: 16px; margin: 8px 4px 12px; }
+  .sheet .opt { display: block; width: 100%; text-align: start; padding: 14px 6px; border-top: 1px solid var(--line); font-size: 16px; }
+  .sheet .opt.danger { color: var(--danger); }
+  .sheet .opt:first-of-type { border-top: 0; }
+  .toast { position: fixed; left: 50%; bottom: calc(96px + var(--bottom)); transform: translateX(-50%); background: #1d1b18; color: #fff; padding: 10px 16px;
+    border-radius: 12px; font-size: 14px; z-index: 40; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 88vw; text-align: center; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap" id="view"></div>
+
+<div class="mini" id="mini" hidden>
+  <div id="miniCover"></div>
+  <div class="meta"><div class="t1" id="miniT1"></div><div class="t2" id="miniT2"></div></div>
+  <button class="ctl" id="miniToggle" aria-label="נגן או עצור"></button>
+  <button class="ctl" id="miniFwd" aria-label="קדימה 30 שניות"></button>
+  <div class="line"><i id="miniLine"></i></div>
+</div>
+
+<section class="player" id="player" aria-hidden="true">
+  <button class="grab" id="closePlayer" aria-label="סגור"></button>
+  <div class="art" id="art"></div>
+  <div class="names"><div class="t1" id="pT1"></div><div class="t2" id="pT2"></div><div class="t3" id="pT3"></div></div>
+  <div class="status-line" id="pStatus"></div>
+  <div class="timeline">
+    <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="מיקום בפרק">
+    <div class="times"><span id="tNow">0:00</span><span id="tLeft">-0:00</span></div>
+  </div>
+  <div class="controls">
+    <button id="prevCh" aria-label="פרק קודם"></button>
+    <button id="back" aria-label="אחורה 15 שניות"></button>
+    <button id="toggle" class="big" aria-label="נגן או עצור"></button>
+    <button id="fwd" aria-label="קדימה 30 שניות"></button>
+    <button id="nextCh" aria-label="פרק הבא"></button>
+  </div>
+  <div class="extras"><button class="pill" id="rate">1×</button><button class="pill" id="chapters">פרקים</button></div>
+</section>
+
+<div class="sheet-bg" id="sheetBg" hidden><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<audio id="audio" preload="auto"></audio>
+
+<script>
+// ---- configuration --------------------------------------------------------
+// OAuth client of type "Web application" (see README). The ID is public.
+const CLIENT_ID = '';
+const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+const LIBRARY = 'ספרים מושמעים';
+const RATES = [1, 1.1, 1.25, 1.5, 1.75, 2, 0.8];
+const BACK_SEC = 15, FWD_SEC = 30;
+const DEMO = new URLSearchParams(location.search).has('demo');
+const CHAPTER_CACHE = 'chapters-v1';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2800); }
+function clock(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+function hoursText(s) { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)} ש׳ ${m % 60} ד׳` : `${m} ד׳`; }
+
+// ---- icons ------------------------------------------------------------------
+const I = {
+  play: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8a1 1 0 0 0 1.52.85l10.1-6.4a1 1 0 0 0 0-1.7L9.52 4.75A1 1 0 0 0 8 5.6z"/></svg>',
+  pause: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.3"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.3"/></svg>',
+  skip: (n, fwd) => `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="${fwd ? 'M12 6A7 7 0 1 0 19 13' : 'M12 6A7 7 0 1 1 5 13'}"/><path d="${fwd ? 'M9.6 3.6 12.3 6 9.6 8.4' : 'M14.4 3.6 11.7 6 14.4 8.4'}"/>
+    <text x="12" y="15.4" fill="currentColor" stroke="none" font-size="6.6" font-weight="700" text-anchor="middle" font-family="-apple-system, system-ui, sans-serif">${n}</text></svg>`,
+  chapter: next => `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="${next ? 'transform:scaleX(-1)' : ''}"><rect x="5" y="6" width="2.2" height="12" rx="1"/><path d="M18.5 6.9v10.2a.9.9 0 0 1-1.4.74L9.8 12.74a.9.9 0 0 1 0-1.48l7.3-5.1a.9.9 0 0 1 1.4.74z"/></svg>`,
+  down: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 5.5 6-5.5"/></svg>',
+  backArrow: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5l6.5 6.5L9 18.5"/></svg>',
+  more: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18.5" cy="12" r="2"/></svg>',
+  smallPlay: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8a1 1 0 0 0 1.52.85l10.1-6.4a1 1 0 0 0 0-1.7L9.52 4.75A1 1 0 0 0 8 5.6z"/></svg>',
+};
+const miniIcon = svg => svg.replace(/width="30" height="30"/, 'width="24" height="24"');
+
+// ---- covers: generated from the title, stable colors ------------------------
+function hue(title) { let h = 0; for (const ch of title) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h % 360; }
+function coverStyle(title) { const h = hue(title); return `background: linear-gradient(145deg, hsl(${h} 45% 42%), hsl(${(h + 40) % 360} 55% 26%));`; }
+function coverHTML(book, size) {
+  const small = size < 90;
+  const text = small ? [...book.title.trim()][0] || '' : book.title;
+  const fs = small ? size * 0.45 : Math.max(13, size * 0.1);
+  return `<div class="cover" style="${coverStyle(book.title)} width:${size}px;height:${size}px;font-size:${fs}px"><span>${esc(text)}</span></div>`;
+}
+const artCache = new Map();
+function coverBlobURL(book) {
+  if (artCache.has(book.id)) return Promise.resolve(artCache.get(book.id));
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d'), h = hue(book.title);
+  const grad = g.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0, `hsl(${h} 45% 42%)`); grad.addColorStop(1, `hsl(${(h + 40) % 360} 55% 26%)`);
+  g.fillStyle = grad; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#fff'; g.font = '800 54px -apple-system, system-ui, sans-serif'; g.textAlign = 'center'; g.direction = 'rtl';
+  const lines = []; let line = '';
+  for (const w of book.title.split(/\s+/)) { const t = line ? line + ' ' + w : w; if (g.measureText(t).width > 420 && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line);
+  const shown = lines.slice(0, 5), y0 = 256 - (shown.length - 1) * 32;
+  shown.forEach((l, i) => g.fillText(l, 256, y0 + i * 64 + 18));
+  return new Promise(res => c.toBlob(b => { const u = URL.createObjectURL(b); artCache.set(book.id, u); res(u); }, 'image/png'));
+}
+
+// ---- Google sign-in (OAuth implicit redirect: works inside a home-screen web app) --------
+let authError = '';
+function token() { const t = store.get('token'); return t && t.exp > Date.now() + 60_000 ? t.value : null; }
+function signIn(silent = false) {
+  const state = Math.random().toString(36).slice(2);
+  store.set('oauthState', state);
+  const p = new URLSearchParams({ client_id: CLIENT_ID, redirect_uri: location.origin + location.pathname, response_type: 'token',
+    scope: SCOPE, include_granted_scopes: 'true', state });
+  const email = store.get('email'); if (email) p.set('login_hint', email);
+  if (silent) p.set('prompt', 'none');
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p;
+}
+function takeTokenFromUrl() {
+  if (!/access_token|error/.test(location.hash)) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null, '', location.pathname + location.search);
+  if (h.get('state') !== store.get('oauthState')) return;
+  if (h.get('access_token')) {
+    store.set('token', { value: h.get('access_token'), exp: Date.now() + (+h.get('expires_in') || 3600) * 1000 });
+    store.set('signedIn', true);
+  } else if (h.get('error') && h.get('error') !== 'interaction_required' && h.get('error') !== 'login_required') {
+    authError = h.get('error');
+  }
+}
+function signOut() { store.set('token', null); store.set('signedIn', false); store.set('library', null); render(); }
+class AuthError extends Error {}
+
+// ---- Google Drive ----------------------------------------------------------------
+async function drive(path, params) {
+  const t = token(); if (!t) throw new AuthError('signed out');
+  const r = await fetch('https://www.googleapis.com/drive/v3/' + path + (params ? '?' + new URLSearchParams(params) : ''),
+    { headers: { Authorization: 'Bearer ' + t } });
+  if (r.status === 401) { store.set('token', null); throw new AuthError('expired'); }
+  if (!r.ok) throw new Error(`Drive ${r.status}`);
+  return r;
+}
+async function list(q) {
+  const out = []; let pageToken;
+  do {
+    const params = { q, pageSize: '1000', fields: 'nextPageToken, files(id, name, mimeType, size, parents)' };
+    if (pageToken) params.pageToken = pageToken;
+    const d = await (await drive('files', params)).json();
+    out.push(...d.files); pageToken = d.nextPageToken;
+  } while (pageToken);
+  return out;
+}
+const quote = s => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+const isAudio = f => /^audio\//.test(f.mimeType) || /\.(m4a|m4b|mp3|aac|wav)$/i.test(f.name);
+const byName = (a, b) => a.name.localeCompare(b.name, 'he', { numeric: true });
+function chapterTitle(name) {
+  const base = name.replace(/\.[^.]+$/, '');
+  return base.replace(/^\d+\s*[-._)]*\s*/, '') || base;
+}
+async function fetchLibrary() {
+  if (DEMO) return (await fetch('demo/library.json')).json();
+  const email = (await (await drive('about', { fields: 'user(emailAddress)' })).json()).user.emailAddress;
+  store.set('email', email);
+  const roots = await list(`name = ${quote(LIBRARY)} and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+  if (!roots.length) return { missing: true, books: [] };
+  const root = roots[0];
+  const inRoot = await list(`${quote(root.id)} in parents and trashed = false`);
+  const folders = inRoot.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+  const files = folders.length ? await list(`(${folders.map(f => `${quote(f.id)} in parents`).join(' or ')}) and trashed = false`) : [];
+  const books = folders.map(f => ({
+    id: f.id, title: f.name,
+    chapters: files.filter(x => x.parents.includes(f.id) && isAudio(x)).sort(byName)
+      .map(x => ({ id: x.id, name: x.name, title: chapterTitle(x.name), size: +x.size || 0 })),
+  }));
+  // Loose audio files directly in the library folder are one-chapter books.
+  for (const f of inRoot.filter(isAudio)) books.push({ id: f.id, title: chapterTitle(f.name), chapters: [{ id: f.id, name: f.name, title: chapterTitle(f.name), size: +f.size || 0 }] });
+  return { books: books.filter(b => b.chapters.length).sort((a, b) => a.title.localeCompare(b.title, 'he', { numeric: true })) };
+}
+
+// ---- chapters on the device ---------------------------------------------------------
+const chapterKey = id => new Request(`chapter/${id}`);
+const inflight = new Map();
+async function localChapter(ch) {
+  const c = await caches.open(CHAPTER_CACHE); const r = await c.match(chapterKey(ch.id));
+  return r ? r.blob() : null;
+}
+function downloadChapter(ch, onProgress) {
+  if (inflight.has(ch.id)) return inflight.get(ch.id);
+  const job = (async () => {
+    const r = DEMO ? await fetch(ch.url) : await drive(`files/${ch.id}`, { alt: 'media' });
+    const total = +r.headers.get('content-length') || ch.size || 0;
+    const reader = r.body.getReader(), parts = []; let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      parts.push(value); got += value.length; if (onProgress && total) onProgress(got / total);
+    }
+    const type = /\.m4[ab]$/i.test(ch.name) ? 'audio/mp4' : (r.headers.get('content-type') || 'audio/mp4');
+    const blob = new Blob(parts, { type });
+    await (await caches.open(CHAPTER_CACHE)).put(chapterKey(ch.id), new Response(blob, { headers: { 'content-type': type } }));
+    return blob;
+  })();
+  inflight.set(ch.id, job);
+  job.finally(() => inflight.delete(ch.id));
+  return job;
+}
+async function localIds() {
+  try { const c = await caches.open(CHAPTER_CACHE); return new Set((await c.keys()).map(r => r.url.split('/').pop())); } catch { return new Set(); }
+}
+
+// ---- listening progress -------------------------------------------------------------
+let progress = store.get('progress', {});
+let durations = store.get('durations', {});
+function saveProgress(finished = false) {
+  if (!P.book) return;
+  const live = P.url && audio.src === P.url;
+  progress[P.book.id] = { index: P.index, position: finished ? 0 : live ? audio.currentTime : P.startAt || 0, updated: Date.now(), finished };
+  store.set('progress', progress);
+}
+function bookFraction(b) {
+  const p = progress[b.id]; if (!p) return 0; if (p.finished) return 1;
+  const ds = b.chapters.map(c => durations[c.id]);
+  if (ds.every(Boolean)) {
+    const total = ds.reduce((a, x) => a + x, 0);
+    return (ds.slice(0, p.index).reduce((a, x) => a + x, 0) + p.position) / total;
+  }
+  return (p.index + (durations[b.chapters[p.index]?.id] ? p.position / durations[b.chapters[p.index].id] : 0)) / b.chapters.length;
+}
+function bookTotal(b) { const ds = b.chapters.map(c => durations[c.id]); return ds.every(Boolean) ? ds.reduce((a, x) => a + x, 0) : null; }
+function bookLine(b) {
+  const p = progress[b.id], n = b.chapters.length, total = bookTotal(b);
+  if (!p) return (n === 1 ? 'פרק אחד' : `${n} פרקים`) + (total ? ` · ${hoursText(total)}` : '');
+  if (p.finished) return 'הסתיים';
+  const left = total ? total * (1 - bookFraction(b)) : null;
+  return `פרק ${p.index + 1} מתוך ${n}` + (left ? ` · נותרו ${hoursText(left)}` : '');
+}
+// After a pause, go back a little so the listener finds the thread again.
+function rewindFor(ms) { const s = ms / 1000; return s < 10 ? 0 : s < 300 ? 3 : s < 3600 ? 10 : 20; }
+
+// ---- player -------------------------------------------------------------------------
+const audio = $('#audio');
+const P = { book: null, index: 0, token: 0, url: null, pausedAt: null, startAt: 0, status: '', statusErr: false, lastSave: 0 };
+let rate = store.get('rate', 1);
+let unlocked = false, silentURL = null;
+
+// iOS lets a page start audio only from a tap. Starting (and pausing) a silent clip on the
+// first tap unlocks the element, so later chapters can start on their own, even when locked.
+function silentWav() {
+  const n = 2400, b = new ArrayBuffer(44 + n * 2), v = new DataView(b);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 24000, true); v.setUint32(28, 48000, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+}
+function unlock() {
+  if (unlocked) return; unlocked = true;
+  if (audio.src) return;
+  silentURL = silentWav(); audio.src = silentURL;
+  audio.play().then(() => { if (audio.src === silentURL) audio.pause(); }).catch(() => {});
+}
+
+function playBook(book, fromStart) {
+  unlock();
+  const p = progress[book.id];
+  if (fromStart || !p || p.finished) return openChapter(book, 0, 0);
+  openChapter(book, Math.min(p.index, book.chapters.length - 1), Math.max(0, p.position - rewindFor(Date.now() - p.updated)));
+}
+function playChapter(book, i) {
+  unlock();
+  const p = progress[book.id];
+  const here = P.book && P.book.id === book.id && P.index === i;
+  if (here) { if (audio.paused) resume(); openPlayer(); return; }
+  openChapter(book, i, p && !p.finished && p.index === i ? p.position : 0);
+}
+async function openChapter(book, index, position, autoplay = true) {
+  if (P.book) saveProgress();
+  const token = ++P.token;
+  P.book = book; P.index = index; P.startAt = position; P.pausedAt = null;
+  const ch = book.chapters[index];
+  // Detach the old chapter first, so its pause event does not save its time under the new chapter.
+  const oldURL = P.url; P.url = null;
+  audio.pause();
+  setStatus('');
+  renderPlayer(); renderMini(); updateSession();
+  let blob = await localChapter(ch);
+  if (!blob) {
+    setStatus('מוריד את הפרק...');
+    try { blob = await downloadChapter(ch, f => token === P.token && setStatus(`מוריד את הפרק... ${Math.round(f * 100)}%`)); }
+    catch (e) {
+      if (token !== P.token) return;
+      if (e instanceof AuthError) { setStatus('צריך להתחבר שוב ל-Google כדי להוריד את הפרק', true); showSignInAgain(); }
+      else setStatus('ההורדה נכשלה. בדוק חיבור ונסה שוב.', true);
+      return;
+    }
+  }
+  if (token !== P.token) return;
+  setStatus('');
+  if (oldURL) URL.revokeObjectURL(oldURL);
+  P.url = URL.createObjectURL(blob);
+  audio.src = P.url;
+  audio.playbackRate = rate; audio.defaultPlaybackRate = rate;
+  await new Promise(res => audio.addEventListener('loadedmetadata', res, { once: true }));
+  if (token !== P.token) return;
+  if (isFinite(audio.duration)) { durations[ch.id] = audio.duration; store.set('durations', durations); }
+  audio.currentTime = Math.min(position, Math.max(0, (audio.duration || 0) - 1));
+  saveProgress();
+  if (autoplay) audio.play().catch(() => renderPlayer());
+  renderPlayer(); renderMini(); updateSession();
+  prefetchNext();
+}
+function prefetchNext() {
+  const b = P.book, next = b && b.chapters[P.index + 1];
+  if (!next) return;
+  localChapter(next).then(have => { if (!have) downloadChapter(next).catch(() => {}); });
+}
+function resume() {
+  unlock();
+  if (!P.book) return;
+  if (!audio.src || audio.src !== P.url) return openChapter(P.book, P.index, P.startAt);
+  if (P.pausedAt) {
+    const back = rewindFor(Date.now() - P.pausedAt);
+    if (back) audio.currentTime = Math.max(0, audio.currentTime - back);
+    P.pausedAt = null;
+  }
+  audio.play().catch(() => {});
+}
+function pause() { audio.pause(); }
+function toggle() { audio.paused ? resume() : pause(); }
+function skip(sec) {
+  if (!P.url) return;
+  const t = audio.currentTime + sec;
+  if (t >= (audio.duration || Infinity) - 0.5) return nextChapter();
+  audio.currentTime = Math.max(0, t);
+  saveProgress(); updatePosition();
+}
+function nextChapter() { if (P.book && P.index + 1 < P.book.chapters.length) openChapter(P.book, P.index + 1, 0); }
+function prevChapter() {
+  if (!P.book) return;
+  if (audio.currentTime > 5 || P.index === 0) { audio.currentTime = 0; saveProgress(); return; }
+  openChapter(P.book, P.index - 1, 0, !audio.paused);
+}
+function setRate(r) { rate = r; store.set('rate', r); audio.playbackRate = r; audio.defaultPlaybackRate = r; $('#rate').textContent = `${r}×`; updatePosition(); }
+function setStatus(msg, err = false) { P.status = msg; P.statusErr = err; const s = $('#pStatus'); s.textContent = msg; s.className = 'status-line' + (err ? ' err' : ''); }
+
+audio.addEventListener('play', () => { renderControls(); updateSession(); });
+audio.addEventListener('pause', () => { if (P.url && audio.src === P.url) { P.pausedAt = Date.now(); saveProgress(); } renderControls(); updateSession(); });
+audio.addEventListener('timeupdate', () => {
+  if (!P.url || audio.src !== P.url) return;
+  renderTime();
+  if (Date.now() - P.lastSave > 5000) { P.lastSave = Date.now(); saveProgress(); updatePosition(); }
+});
+audio.addEventListener('ended', () => {
+  if (!P.book || audio.src !== P.url) return;
+  if (P.index + 1 < P.book.chapters.length) openChapter(P.book, P.index + 1, 0, true);
+  else { saveProgress(true); toast('הספר הסתיים'); renderControls(); render(); }
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveProgress(); });
+window.addEventListener('pagehide', () => saveProgress());
+
+// ---- lock screen and headphones (Media Session) ------------------------------------------
+async function updateSession() {
+  if (!('mediaSession' in navigator) || !P.book) return;
+  const ch = P.book.chapters[P.index];
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: ch.title, artist: P.book.title, album: `פרק ${P.index + 1} מתוך ${P.book.chapters.length}`,
+    artwork: [{ src: await coverBlobURL(P.book), sizes: '512x512', type: 'image/png' }],
+  });
+  navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+  updatePosition();
+}
+function updatePosition() {
+  if (!('mediaSession' in navigator) || !isFinite(audio.duration) || !audio.duration) return;
+  try { navigator.mediaSession.setPositionState({ duration: audio.duration, playbackRate: rate, position: Math.min(audio.currentTime, audio.duration) }); } catch {}
+}
+if ('mediaSession' in navigator) {
+  const on = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch {} };
+  on('play', () => resume());
+  on('pause', () => pause());
+  on('seekbackward', d => skip(-(d.seekOffset || BACK_SEC)));
+  on('seekforward', d => skip(d.seekOffset || FWD_SEC));
+  on('seekto', d => { if (P.url) { audio.currentTime = d.seekTime; saveProgress(); updatePosition(); } });
+}
+
+// ---- rendering ----------------------------------------------------------------------
+let library = store.get('library', null);
+let route = { name: 'library' };
+let loadError = '';
+
+function render() {
+  const v = $('#view');
+  if (!CLIENT_ID && !DEMO) {
+    v.innerHTML = `<div class="center"><img class="logo" src="icons/icon-192.png" alt=""><h2>צריך להגדיר את החיבור ל-Google</h2>
+      <p>חסר מזהה OAuth client בקוד. ההוראות ב-README של הפרויקט.</p></div>`;
+    return;
+  }
+  if (!DEMO && !token() && !library) {
+    v.innerHTML = `<div class="center"><img class="logo" src="icons/icon-192.png" alt=""><h2>ספרים מושמעים</h2>
+      <p>הספרים נקראים מהתיקייה <b>${LIBRARY}</b> ב-Google Drive שלך. כל תת־תיקייה היא ספר.</p>
+      <button class="btn primary" data-act="signin" style="max-width:300px">התחברות עם Google</button>
+      ${authError ? `<div class="err">ההתחברות נכשלה (${esc(authError)})</div>` : ''}
+      <div class="note">הגישה היא לקריאה בלבד.</div></div>`;
+    return;
+  }
+  if (route.name === 'book') {
+    const b = library && library.books.find(x => x.id === route.id);
+    if (b) return renderBook(b);
+    route = { name: 'library' };
+  }
+  renderLibrary();
+}
+
+function renderLibrary() {
+  const v = $('#view');
+  const head = `<div class="top"><h1>ספרים</h1><button class="icon-btn" data-act="menu" aria-label="תפריט">${I.more}</button></div>`;
+  if (!library) { v.innerHTML = head + `<div class="center"><p>${loadError ? `<span class="err">${esc(loadError)}</span>` : 'טוען את הספרייה...'}</p></div>`; return; }
+  if (library.missing) {
+    v.innerHTML = head + `<div class="center"><h2>לא נמצאה התיקייה</h2><p>צור ב-Google Drive תיקייה בשם <b>${LIBRARY}</b> ובה תיקייה לכל ספר, או שלח ספר מ-Book Translator.</p></div>`;
+    return;
+  }
+  const books = library.books;
+  if (!books.length) { v.innerHTML = head + `<div class="center"><h2>אין עדיין ספרים</h2><p>כל תת־תיקייה של <b>${LIBRARY}</b> שיש בה קבצי שמע תופיע כאן.</p></div>`; return; }
+  const listening = books.filter(b => progress[b.id] && !progress[b.id].finished).sort((a, b) => progress[b.id].updated - progress[a.id].updated);
+  const fresh = books.filter(b => !progress[b.id]);
+  const finished = books.filter(b => progress[b.id] && progress[b.id].finished);
+  const row = b => `<button class="row" data-book="${b.id}">
+      ${coverHTML(b, 58)}
+      <div class="meta"><div class="title">${esc(b.title)}</div><div class="sub">${esc(bookLine(b))}</div>
+      ${progress[b.id] && !progress[b.id].finished ? `<div class="bar"><i style="width:${(bookFraction(b) * 100).toFixed(1)}%"></i></div>` : ''}</div>
+      <span class="play-chip" data-quick="${b.id}" aria-label="נגן">${I.smallPlay}</span></button>`;
+  const sec = (title, arr) => arr.length ? `<div class="section">${title}</div><div class="list">${arr.map(row).join('')}</div>` : '';
+  const offline = !DEMO && !token()
+    ? `<div class="note" style="margin:4px 4px 0">לא מחובר ל-Google, מוצגת הספרייה מהפעם הקודמת. <button data-act="signin" style="color:var(--accent);font-weight:650">התחבר</button></div>` : '';
+  v.innerHTML = head + offline + sec('ממשיכים להאזין', listening) + sec(listening.length ? 'עוד לא התחלת' : 'הספרייה', fresh) + sec('הסתיימו', finished)
+    + (loadError ? `<div class="note" style="margin-top:14px;text-align:center">${esc(loadError)}</div>` : '');
+}
+
+async function renderBook(b) {
+  const v = $('#view');
+  const p = progress[b.id];
+  const cont = p && !p.finished;
+  const buttons = cont
+    ? `<button class="btn primary" data-play="${b.id}">המשך האזנה<small>פרק ${p.index + 1}, ${clock(p.position)}</small></button>
+       <button class="btn secondary" data-start="${b.id}">האזנה מההתחלה</button>`
+    : `<button class="btn primary" data-start="${b.id}">${p && p.finished ? 'האזנה מחדש' : 'התחל האזנה'}</button>`;
+  const here = new Set(await localIds());
+  v.innerHTML = `<button class="back" data-act="home">${I.backArrow}ספרים</button>
+    <div class="book-head">${coverHTML(b, 190)}<h2>${esc(b.title)}</h2><div class="sub">${esc(bookLine(b))}</div>${buttons}</div>
+    <div class="section">פרקים</div>
+    <div class="list">${b.chapters.map((c, i) => {
+      const now = P.book && P.book.id === b.id && P.index === i;
+      const done = p && (p.finished || i < p.index);
+      return `<button class="ch ${now ? 'now' : done ? 'done' : ''}" data-ch="${i}">
+        <span class="n">${i + 1}</span><span class="t">${esc(c.title)}</span>
+        ${here.has(c.id) ? '<span class="dot" title="שמור במכשיר"></span>' : ''}
+        <span class="d">${durations[c.id] ? clock(durations[c.id]) : ''}</span></button>`;
+    }).join('')}</div>
+    <div class="note" style="margin:10px 4px">נקודה ליד פרק: הוא שמור במכשיר וזמין גם בלי אינטרנט.</div>`;
+}
+
+function renderMini() {
+  const m = $('#mini');
+  if (!P.book) { m.hidden = true; return; }
+  m.hidden = false;
+  const ch = P.book.chapters[P.index];
+  $('#miniCover').innerHTML = coverHTML(P.book, 46);
+  $('#miniT1').textContent = ch.title;
+  $('#miniT2').textContent = P.book.title;
+  $('#miniFwd').innerHTML = I.skip(FWD_SEC, true).replace('width="34" height="34"', 'width="28" height="28"');
+  renderControls();
+}
+function renderPlayer() {
+  if (!P.book) return;
+  const ch = P.book.chapters[P.index];
+  $('#art').innerHTML = coverHTML(P.book, 320);
+  $('#pT1').textContent = ch.title;
+  $('#pT2').textContent = P.book.title;
+  $('#pT3').textContent = `פרק ${P.index + 1} מתוך ${P.book.chapters.length}`;
+  $('#rate').textContent = `${rate}×`;
+  setStatus(P.status, P.statusErr);
+  renderControls(); renderTime();
+}
+function renderControls() {
+  const playing = !audio.paused && P.url && audio.src === P.url;
+  $('#toggle').innerHTML = playing ? I.pause.replace(/30/g, '34') : I.play.replace(/30/g, '34');
+  $('#miniToggle').innerHTML = miniIcon(playing ? I.pause : I.play);
+}
+let scrubbing = false;
+function renderTime() {
+  const d = P.url && audio.src === P.url && isFinite(audio.duration) ? audio.duration : (P.book && durations[P.book.chapters[P.index].id]) || 0;
+  const t = P.url && audio.src === P.url ? audio.currentTime : P.startAt;
+  const seek = $('#seek');
+  if (!scrubbing) seek.value = d ? Math.round(t / d * 1000) : 0;
+  const shown = scrubbing && d ? seek.value / 1000 * d : t;
+  seek.style.setProperty('--p', (seek.value / 10) + '%');
+  $('#tNow').textContent = clock(shown);
+  $('#tLeft').textContent = '-' + clock(Math.max(0, d - shown));
+  $('#miniLine').style.width = d ? (t / d * 100) + '%' : '0';
+}
+function openPlayer() { $('#player').classList.add('open'); $('#player').setAttribute('aria-hidden', 'false'); renderPlayer(); }
+function closePlayer() { $('#player').classList.remove('open'); $('#player').setAttribute('aria-hidden', 'true'); }
+
+function sheet(html) { $('#sheet').innerHTML = html; $('#sheetBg').hidden = false; }
+function closeSheet() { $('#sheetBg').hidden = true; }
+function showSignInAgain() {
+  sheet(`<h3>החיבור ל-Google פג</h3><p class="note" style="margin:0 4px 10px">כדי להוריד פרקים חדשים צריך להתחבר שוב. פרקים שכבר במכשיר ממשיכים לעבוד.</p>
+    <button class="opt" data-act="signin">התחבר שוב</button><button class="opt" data-act="close">לא עכשיו</button>`);
+}
+async function showMenu() {
+  let used = '';
+  try { const e = await navigator.storage.estimate(); used = `${Math.round((e.usage || 0) / 1e6)} MB`; } catch {}
+  sheet(`<h3>${esc(store.get('email', '') || 'ספרים מושמעים')}</h3>
+    <button class="opt" data-act="refresh">רענן את הספרייה</button>
+    <button class="opt" data-act="clear">מחק פרקים שמורים מהמכשיר${used ? ` (${used})` : ''}</button>
+    ${DEMO ? '' : '<button class="opt danger" data-act="signout">התנתק</button>'}
+    <button class="opt" data-act="close">סגור</button>`);
+}
+function showChapters() {
+  const b = P.book; if (!b) return;
+  sheet(`<h3>${esc(b.title)}</h3><div style="max-height:60dvh;overflow:auto">${b.chapters.map((c, i) =>
+    `<button class="opt" data-pch="${i}" style="${i === P.index ? 'color:var(--accent);font-weight:700' : ''}">${i + 1}. ${esc(c.title)}</button>`).join('')}</div>`);
+}
+
+// ---- events -------------------------------------------------------------------------
+function go(r) { route = r; history.pushState(r, ''); render(); window.scrollTo(0, 0); }
+window.addEventListener('popstate', e => { route = e.state || { name: 'library' }; render(); });
+
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act],[data-book],[data-quick],[data-play],[data-start],[data-ch],[data-pch]');
+  if (!t) return;
+  const find = id => library.books.find(b => b.id === id);
+  if (t.dataset.quick) { e.stopPropagation(); playBook(find(t.dataset.quick)); openPlayer(); return; }
+  if (t.dataset.book) return go({ name: 'book', id: t.dataset.book });
+  if (t.dataset.play) { playBook(find(t.dataset.play)); openPlayer(); return; }
+  if (t.dataset.start) { playBook(find(t.dataset.start), true); openPlayer(); return; }
+  if (t.dataset.ch) { playChapter(find(route.id), +t.dataset.ch); openPlayer(); return; }
+  if (t.dataset.pch) { closeSheet(); unlock(); openChapter(P.book, +t.dataset.pch, 0); return; }
+  const act = t.dataset.act;
+  if (act === 'signin') return signIn();
+  if (act === 'home') return history.length > 1 ? history.back() : go({ name: 'library' });
+  if (act === 'menu') return showMenu();
+  if (act === 'close') return closeSheet();
+  if (act === 'refresh') { closeSheet(); await refreshLibrary(true); return; }
+  if (act === 'signout') { closeSheet(); signOut(); return; }
+  if (act === 'clear') {
+    closeSheet();
+    const keep = P.book ? P.book.chapters[P.index].id : null;
+    const c = await caches.open(CHAPTER_CACHE);
+    for (const r of await c.keys()) if (!keep || !r.url.endsWith('/' + keep)) await c.delete(r);
+    toast('הפרקים השמורים נמחקו'); render();
+  }
+});
+$('#sheetBg').addEventListener('click', e => { if (e.target === $('#sheetBg')) closeSheet(); });
+$('#mini').addEventListener('click', e => { if (!e.target.closest('button')) openPlayer(); });
+$('#miniToggle').onclick = () => toggle();
+$('#miniFwd').onclick = () => skip(FWD_SEC);
+$('#closePlayer').onclick = closePlayer;
+$('#toggle').onclick = () => toggle();
+$('#back').onclick = () => skip(-BACK_SEC);
+$('#fwd').onclick = () => skip(FWD_SEC);
+$('#prevCh').onclick = prevChapter;
+$('#nextCh').onclick = nextChapter;
+$('#rate').onclick = () => setRate(RATES[(RATES.indexOf(rate) + 1) % RATES.length]);
+$('#chapters').onclick = showChapters;
+const seekEl = $('#seek');
+seekEl.addEventListener('input', () => { scrubbing = true; renderTime(); });
+seekEl.addEventListener('change', () => {
+  scrubbing = false;
+  if (P.url && isFinite(audio.duration)) { audio.currentTime = seekEl.value / 1000 * audio.duration; saveProgress(); updatePosition(); }
+  renderTime();
+});
+// Swipe down on the player to close it.
+let y0 = null;
+$('#player').addEventListener('touchstart', e => { y0 = e.target.closest('input') ? null : e.touches[0].clientY; }, { passive: true });
+$('#player').addEventListener('touchend', e => { if (y0 != null && e.changedTouches[0].clientY - y0 > 90) closePlayer(); y0 = null; });
+
+$('#closePlayer').innerHTML = I.down;
+$('#back').innerHTML = I.skip(BACK_SEC, false);
+$('#fwd').innerHTML = I.skip(FWD_SEC, true);
+$('#prevCh').innerHTML = I.chapter(false);
+$('#nextCh').innerHTML = I.chapter(true);
+
+// ---- start --------------------------------------------------------------------------
+async function refreshLibrary(announce) {
+  try {
+    const lib = await fetchLibrary();
+    library = lib; loadError = '';
+    if (!DEMO) store.set('library', lib);
+    if (announce) toast('הספרייה עודכנה');
+  } catch (e) {
+    if (e instanceof AuthError) { if (!library) { render(); return; } loadError = 'לא מחובר ל-Google. מוצגת הספרייה מהפעם הקודמת.'; }
+    else loadError = library ? 'אין חיבור. מוצגת הספרייה מהפעם הקודמת.' : 'טעינת הספרייה נכשלה. בדוק חיבור.';
+  }
+  render();
+}
+
+takeTokenFromUrl();
+history.replaceState(route, '');
+if ('serviceWorker' in navigator && !DEMO) navigator.serviceWorker.register('sw.js').catch(() => {});
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+// An expired session renews itself with one quick redirect when the app opens, never mid-listening.
+if (!DEMO && CLIENT_ID && !token() && store.get('signedIn') && !sessionStorage.getItem('silentTried')) {
+  sessionStorage.setItem('silentTried', '1');
+  signIn(true);
+} else {
+  render();
+  if (DEMO || token()) refreshLibrary(false);
+}
+</script>
+</body>
+</html>
